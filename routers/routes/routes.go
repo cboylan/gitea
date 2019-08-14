@@ -6,6 +6,7 @@ package routes
 
 import (
 	"bytes"
+	stdcontext "context"
 	"encoding/gob"
 	"net/http"
 	"os"
@@ -90,6 +91,13 @@ func setupAccessLogger(m *macaron.Macaron) {
 	})
 }
 
+func requestTimeout(ctx * macaron.Context) {
+	// TODO make timeout configurable
+	httpContext := ctx.Req.Context()
+	newContext, _ := stdcontext.WithTimeout(httpContext, time.Second*5)
+	ctx.Req.WithContext(newContext)
+}
+
 // RouterHandler is a macaron handler that will log the routing to the default gitea log
 func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	return func(ctx *macaron.Context) {
@@ -127,6 +135,7 @@ func NewMacaron() *macaron.Macaron {
 	if setting.EnableAccessLog {
 		setupAccessLogger(m)
 	}
+	m.Use(requestTimeout)
 	m.Use(macaron.Recovery())
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())
